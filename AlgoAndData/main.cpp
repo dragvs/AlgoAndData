@@ -105,22 +105,6 @@ std::vector<int> generateSorted(int inputSize, int maxValue, Compare compare) {
 // Runners
 //
 
-// Obsolete
-template<typename RandomIt, typename Compare>
-void runSort(RandomIt first, RandomIt last, Compare comparison) {
-//	lab::insertion_sort(first, last, comparison);
-//	lab::selection_sort(first, last, comparison);
-//	lab::merge_sort(first, last, comparison);
-	lab::quick_sort(first, last, comparison);
-	
-	if (!isSorted(first, last, comparison)) {
-		std::cout << "#SORT ERROR" << std::endl;
-		print(first, last);
-	} else {
-		std::cout << "#SORT OK" << std::endl;
-	}
-}
-
 using time_duration = std::chrono::duration<double, std::milli>;
 
 template<typename RandomIt, typename Compare>
@@ -240,27 +224,41 @@ void runBenchmark(GeneratorFunc generator) {
 	}
 }
 
-int main(int argc, const char * argv[])
-{
-	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, inputSize); });
-//	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, (int)(3 + 0.00097f*(inputSize - 10))); });
-//	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
-//	runBenchmark([](int inputSize) { return generateSorted(inputSize, inputSize, std::greater<int>{}); });
-	return 0;
+void runStabilityCheck() {
+	using DataVec = std::vector<Data>;
+	using DataList = std::list<Data>;
+	using Iterator = DataVec::iterator;
+
+	std::initializer_list<Data> values { {5,0}, {1,1}, {1,2}, {10,0}, {100,1}, {7,0}, {3,0}, {12,0}, {13,0}, {14,0}, {100,2}  };
+//	std::initializer_list<Data> values { {2,1}, {2,2}, {1,1} };
 	
-	//
-//	using DataVec = std::vector<Data>;
-//	using DataList = std::list<Data>;
-//	
-//	std::initializer_list<Data> values { {5,0}, {1,1}, {1,2}, {10,0}, {100,1}, {7,0}, {3,0}, {12,0}, {13,0}, {14,0}, {100,2}  };
-////	std::initializer_list<Data> values { {2,1}, {2,2}, {1,1} }; // stability check
-//	DataVec testContainer(values);
-////	DataList testContainer(values);
-//	lab::radix_sort<DataVec::iterator, DataKeyAccessor>(testContainer.begin(), testContainer.end());
-//
-//	DataComparison comparison;
-//	runSort(testContainer.begin(), testContainer.end(), comparison);
+	DataVec testContainer(values);
+//	DataList testContainer(values);
+	DataComparison comparison;
 	
+
+	auto sortAlgo = [](Iterator begin, Iterator end, decltype(comparison) comp) {
+//			lab::selection_sort(begin, end, comp);
+//			lab::insertion_sort(begin, end, comp);
+//			lab::shell_sort(begin, end, comp);
+//			lab::quick_sort(begin, end, comp);
+//			lab::merge_sort(begin, end, comp);
+//			lab::heap_sort(begin, end, comp);
+//			std::sort(begin, end, comp);
+		lab::radix_sort<Iterator, DataKeyAccessor>(begin, end);
+	};
+	
+	sortAlgo(testContainer.begin(), testContainer.end(), comparison);
+	
+	if (!isSorted(testContainer.begin(), testContainer.end(), comparison)) {
+		std::cout << "#SORT ERROR" << std::endl;
+		print(testContainer.begin(), testContainer.end());
+	} else {
+		std::cout << "#SORT OK" << std::endl;
+	}
+}
+
+void runSortCorrectnessCheck() {
 	using IntVec = std::vector<int>;
 	std::less<int> comparison;
 	
@@ -286,7 +284,7 @@ int main(int argc, const char * argv[])
 		};
 		
 		auto duration =
-			runWithTimer([&]() { sortAlgo(testInputVec.begin(), testInputVec.end(), comparison); });
+		runWithTimer([&]() { sortAlgo(testInputVec.begin(), testInputVec.end(), comparison); });
 		std::cout << "Duration: " << duration.count() << "ms" << std::endl;
 		
 //		auto duration =
@@ -301,6 +299,17 @@ int main(int argc, const char * argv[])
 			std::cout << "#SORT OK" << std::endl;
 		}
 	}
+}
+
+int main(int argc, const char * argv[])
+{
+	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, inputSize); });
+//	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, (int)(3 + 0.00097f*(inputSize - 10))); });
+//	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
+//	runBenchmark([](int inputSize) { return generateSorted(inputSize, inputSize, std::greater<int>{}); });
+	return 0;
 	
+//	runStabilityCheck();
+	runSortCorrectnessCheck();
     return 0;
 }

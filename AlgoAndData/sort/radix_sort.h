@@ -12,6 +12,7 @@
 #include "../data/heap.h"
 #include <vector>
 #include <utility>
+#include <type_traits>
 
 // TODO Add description
 // Stable. LSD variation
@@ -19,7 +20,7 @@
 namespace lab {
 	
 	template<typename T>
-	struct DefaulAccessor {
+	struct DefaultKeyAccessor {
 		T operator()(T& obj) {
 			return obj;
 		}
@@ -28,14 +29,15 @@ namespace lab {
 	// TODO Define Iterator category
 	template<
 		typename RandomIt,
-		typename Accessor=DefaulAccessor<typename std::iterator_traits<RandomIt>::value_type>
+		typename KeyAccessor=DefaultKeyAccessor<typename std::iterator_traits<RandomIt>::value_type>
 	>
-	void radix_sort(RandomIt first, RandomIt last, Accessor accessor) {
+	void radix_sort(RandomIt first, RandomIt last, KeyAccessor accessor) {
 		using ValueType = typename std::iterator_traits<RandomIt>::value_type;
 		using DiffType = typename std::iterator_traits<RandomIt>::difference_type;
-		using KeyType = typename std::result_of<Accessor(ValueType&)>::type;
+		using KeyType = typename std::result_of<KeyAccessor(ValueType&)>::type;
 		
-		// TODO KeyType must be an integral type
+		static_assert(std::is_integral<KeyType>::value, "Key type must be an integral type");
+		
 		if (!(first < last))
 			return;
 		
@@ -93,11 +95,11 @@ namespace lab {
 	}
 	
 	template<
-	typename RandomIt,
-	typename Accessor=DefaulAccessor<typename std::iterator_traits<RandomIt>::value_type>
+		typename RandomIt,
+		typename KeyAccessor=DefaultKeyAccessor<typename std::iterator_traits<RandomIt>::value_type>
 	>
 	void radix_sort(RandomIt first, RandomIt last) {
-		Accessor accessor;
+		KeyAccessor accessor;
 		radix_sort(first, last, accessor);
 	}
 	
