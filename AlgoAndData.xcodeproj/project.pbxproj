@@ -33,6 +33,7 @@
 		575C317118E1BCFC00978831 /* quick_sort.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = quick_sort.h; path = sort/quick_sort.h; sourceTree = "<group>"; };
 		575ECD1818F9E1F1009F97D6 /* shell_sort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shell_sort.h; path = sort/shell_sort.h; sourceTree = "<group>"; };
 		579F551A18782953001F3976 /* merge_sort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = merge_sort.h; path = sort/merge_sort.h; sourceTree = "<group>"; };
+		57AC2CBA18FD730800213C37 /* radix_sort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = radix_sort.h; path = sort/radix_sort.h; sourceTree = "<group>"; };
 		57F9C5BF1877053C006626E7 /* AlgoAndData */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AlgoAndData; sourceTree = BUILT_PRODUCTS_DIR; };
 		57F9C5C21877053C006626E7 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		57F9C5C41877053C006626E7 /* AlgoAndData.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = AlgoAndData.1; sourceTree = "<group>"; };
@@ -58,6 +59,7 @@
 				579F551A18782953001F3976 /* merge_sort.h */,
 				575C317118E1BCFC00978831 /* quick_sort.h */,
 				5726B72518F450D60088F957 /* heap_sort.h */,
+				57AC2CBA18FD730800213C37 /* radix_sort.h */,
 				571ECB8D1877069400DC033B /* sort.h */,
 			);
 			name = sort;

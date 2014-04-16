@@ -27,6 +27,15 @@ struct Data {
 	int index;
 };
 
+struct DataKeyAccessor {
+	int operator()(const Data& data) { return data.value; }
+};
+struct DataComparison {
+	bool operator()(const Data& left, const Data& right) {
+		return left.value < right.value;
+	}
+};
+
 std::ostream& operator<<( std::ostream& os, const Data& data) {
 	std::cout << data.value;
 	
@@ -35,12 +44,6 @@ std::ostream& operator<<( std::ostream& os, const Data& data) {
 	
 	return os;
 }
-
-struct DataComparison {
-	bool operator()(const Data& left, const Data& right) {
-		return left.value < right.value;
-	}
-};
 
 template<typename ForwardIt>
 void print(ForwardIt first, ForwardIt last) {
@@ -196,15 +199,17 @@ void runBenchmark(GeneratorFunc generator) {
 	std::vector<int> inputVecSizes { 10, 127, 1005, 10123, 15000, 101137, 400000, 700000, 1000013 };
 	
 	DataSortFunc std_sort = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) { std::sort(begin, end, comp); };
+	DataSortFunc radix_sort = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) { lab::radix_sort(begin, end); };
 	
-	std::array<DataSortFunc, 7> sortAlgoArr {{
+	std::array<DataSortFunc, 8> sortAlgoArr {{
 		lab::selection_sort<DataVec::iterator, Compare>,
 		lab::insertion_sort<DataVec::iterator, Compare>,
 		lab::shell_sort<DataVec::iterator, Compare>,
 		lab::quick_sort<DataVec::iterator, Compare>,
 		lab::merge_sort<DataVec::iterator, Compare>,
 		lab::heap_sort<DataVec::iterator, Compare>,
-		std_sort
+		std_sort,
+		radix_sort
 	}};
 	
 	for (int inputSize : inputVecSizes) {
@@ -237,9 +242,9 @@ void runBenchmark(GeneratorFunc generator) {
 
 int main(int argc, const char * argv[])
 {
-//	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, inputSize); });
+	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, inputSize); });
 //	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, (int)(3 + 0.00097f*(inputSize - 10))); });
-	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
+//	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
 //	runBenchmark([](int inputSize) { return generateSorted(inputSize, inputSize, std::greater<int>{}); });
 	return 0;
 	
@@ -251,6 +256,7 @@ int main(int argc, const char * argv[])
 ////	std::initializer_list<Data> values { {2,1}, {2,2}, {1,1} }; // stability check
 //	DataVec testContainer(values);
 ////	DataList testContainer(values);
+//	lab::radix_sort<DataVec::iterator, DataKeyAccessor>(testContainer.begin(), testContainer.end());
 //
 //	DataComparison comparison;
 //	runSort(testContainer.begin(), testContainer.end(), comparison);
@@ -265,17 +271,18 @@ int main(int argc, const char * argv[])
 		IntVec inputVec = generateRandomInput(1000013, 1000013);
 //		IntVec inputVec = generatePartiallySorted(100000, 100000, 0.9f, std::less<int>{});
 //		IntVec inputVec = generateSorted(1000013, 1000013, std::greater<int>{});
-//		IntVec inputVec = { 3, 5, 0, 2, 5, 4, 0, 1, 0, 0 };
+//		IntVec inputVec = { 3, 4, 3, 5, 1, 2, 4, 2, 0, 3 };
 		
 		IntVec testInputVec(inputVec);
 		auto sortAlgo = [](IntVec::iterator begin, IntVec::iterator end, decltype(comparison) comp) {
 //			lab::selection_sort(begin, end, comp);
-			lab::insertion_sort(begin, end, comp);
+//			lab::insertion_sort(begin, end, comp);
 //			lab::shell_sort(begin, end, comp);
 //			lab::quick_sort(begin, end, comp);
 //			lab::merge_sort(begin, end, comp);
 //			lab::heap_sort(begin, end, comp);
 //			std::sort(begin, end, comp);
+			lab::radix_sort(begin, end);
 		};
 		
 		auto duration =
