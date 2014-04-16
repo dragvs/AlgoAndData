@@ -45,6 +45,15 @@ std::ostream& operator<<( std::ostream& os, const Data& data) {
 	return os;
 }
 
+bool operator==(const Data& left, const Data& right)
+{
+	return left.value == right.value && left.index == right.index;
+}
+
+//
+// Helpers
+//
+
 template<typename ForwardIt>
 void print(ForwardIt first, ForwardIt last) {
 	bool isFirst = true;
@@ -62,10 +71,25 @@ void print(ForwardIt first, ForwardIt last) {
 }
 
 template<typename ForwardIt, typename Compare>
-bool isSorted(ForwardIt first, ForwardIt last, Compare comp) {
-	// TODO Use std::mismatch
+bool isSorted(ForwardIt sortedFirst, ForwardIt sortedLast, ForwardIt originalFirst, ForwardIt originalLast, Compare comp) {
+//	return std::is_sorted(first, last, comp);
 	
-	return std::is_sorted(first, last, comp);
+	using ValueType = typename std::iterator_traits<ForwardIt>::value_type;
+	std::vector<ValueType> tempSortedVec(originalFirst, originalLast);
+	std::sort(tempSortedVec.begin(), tempSortedVec.end(), comp);
+
+	auto mismatchPair = std::mismatch(sortedFirst, sortedLast, tempSortedVec.begin());
+	return mismatchPair.first == sortedLast && mismatchPair.second == tempSortedVec.end();
+}
+
+template<typename ForwardIt, typename Compare>
+bool isStableSorted(ForwardIt sortedFirst, ForwardIt sortedLast, ForwardIt originalFirst, ForwardIt originalLast, Compare comp) {
+	using ValueType = typename std::iterator_traits<ForwardIt>::value_type;
+	std::vector<ValueType> tempSortedVec(originalFirst, originalLast);
+	std::stable_sort(tempSortedVec.begin(), tempSortedVec.end(), comp);
+	
+	auto mismatchPair = std::mismatch(sortedFirst, sortedLast, tempSortedVec.begin());
+	return mismatchPair.first == sortedLast && mismatchPair.second == tempSortedVec.end();
 }
 
 //
@@ -232,27 +256,28 @@ void runStabilityCheck() {
 	std::initializer_list<Data> values { {5,0}, {1,1}, {1,2}, {10,0}, {100,1}, {7,0}, {3,0}, {12,0}, {13,0}, {14,0}, {100,2}  };
 //	std::initializer_list<Data> values { {2,1}, {2,2}, {1,1} };
 	
-	DataVec testContainer(values);
-//	DataList testContainer(values);
+	DataVec inputData(values);
+	DataVec testInputData(inputData);
+//	DataList testInputData(values);
 	DataComparison comparison;
 	
 
 	auto sortAlgo = [](Iterator begin, Iterator end, decltype(comparison) comp) {
-//			lab::selection_sort(begin, end, comp);
-//			lab::insertion_sort(begin, end, comp);
-//			lab::shell_sort(begin, end, comp);
-//			lab::quick_sort(begin, end, comp);
-//			lab::merge_sort(begin, end, comp);
-//			lab::heap_sort(begin, end, comp);
-//			std::sort(begin, end, comp);
+//		lab::selection_sort(begin, end, comp);
+//		lab::insertion_sort(begin, end, comp);
+//		lab::shell_sort(begin, end, comp);
+//		lab::quick_sort(begin, end, comp);
+//		lab::merge_sort(begin, end, comp);
+//		lab::heap_sort(begin, end, comp);
+//		std::sort(begin, end, comp);
 		lab::radix_sort<Iterator, DataKeyAccessor>(begin, end);
 	};
 	
-	sortAlgo(testContainer.begin(), testContainer.end(), comparison);
+	sortAlgo(testInputData.begin(), testInputData.end(), comparison);
 	
-	if (!isSorted(testContainer.begin(), testContainer.end(), comparison)) {
+	if (!isStableSorted(testInputData.begin(), testInputData.end(), inputData.begin(), inputData.end(), comparison)) {
 		std::cout << "#SORT ERROR" << std::endl;
-		print(testContainer.begin(), testContainer.end());
+		print(testInputData.begin(), testInputData.end());
 	} else {
 		std::cout << "#SORT OK" << std::endl;
 	}
@@ -284,14 +309,10 @@ void runSortCorrectnessCheck() {
 		};
 		
 		auto duration =
-		runWithTimer([&]() { sortAlgo(testInputVec.begin(), testInputVec.end(), comparison); });
+			runWithTimer([&]() { sortAlgo(testInputVec.begin(), testInputVec.end(), comparison); });
 		std::cout << "Duration: " << duration.count() << "ms" << std::endl;
 		
-//		auto duration =
-//			runWithTimerAndMedian<int, decltype(comparison)>(inputVec, 10, sortAlgo);
-//		std::cout << "Duration: " << duration.second.count() << "ms" << std::endl;
-		
-		if (!isSorted(testInputVec.begin(), testInputVec.end(), comparison)) {
+		if (!isSorted(testInputVec.begin(), testInputVec.end(), inputVec.begin(), inputVec.end(), comparison)) {
 			print(inputVec.begin(), inputVec.end());
 			std::cout << "#SORT ERROR" << std::endl;
 			print(testInputVec.begin(), testInputVec.end());
@@ -303,13 +324,13 @@ void runSortCorrectnessCheck() {
 
 int main(int argc, const char * argv[])
 {
-	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, inputSize); });
+//	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, inputSize); });
 //	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, (int)(3 + 0.00097f*(inputSize - 10))); });
 //	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
 //	runBenchmark([](int inputSize) { return generateSorted(inputSize, inputSize, std::greater<int>{}); });
-	return 0;
+//	return 0;
 	
-//	runStabilityCheck();
-	runSortCorrectnessCheck();
+	runStabilityCheck();
+//	runSortCorrectnessCheck();
     return 0;
 }
