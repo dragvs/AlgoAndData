@@ -19,6 +19,7 @@
 #include <initializer_list>
 #include <random>
 #include <chrono>
+#include <thread>
 #include <future>
 
 
@@ -198,16 +199,56 @@ std::pair<bool, time_duration> runWithTimerAndMedian(const Container testData, i
 
 using GeneratorFunc = std::function<std::vector<int> (int inputSize)>;
 
+template<typename Iter>
+void runBenchmark(GeneratorFunc generator, Iter begFuncContainer, Iter endFuncContainer) {
+	using DataType = int;
+	using DataVec = std::vector<DataType>;
+	using Compare = std::less<DataType>;
+	
+	std::vector<int> inputVecSizes { 10, 127, 1005, 10123, 15000, 101137, 400000, 700000, 1000013 };
+	
+	for (int inputSize : inputVecSizes) {
+		DataVec inputVec = generator(inputSize);
+		
+		int i = 0;
+		std::cout << inputSize << "\t";
+		
+		for (Iter funcIter = begFuncContainer; funcIter < endFuncContainer; ++funcIter) {
+			// TODO Remove
+			if ((i == 0 || i == 1) && inputSize > 50000) {
+				++i;
+				std::cout << "" << "\t";
+				continue;
+			}
+			
+			auto duration =
+			runWithTimerAndMedian<DataType, Compare>(inputVec, 10, *funcIter);
+			
+			//			std::cout << "Duration: " << duration.count() << "ms" << std::endl;
+			std::cout << duration.second.count() << "\t";
+			std::cout << std::flush;
+			
+			++i;
+		}
+		
+		std::cout << std::endl;
+	}
+}
+
 void runBenchmark(GeneratorFunc generator) {
 	using DataType = int;
 	using DataVec = std::vector<DataType>;
 	using Compare = std::less<DataType>;
 	using DataSortFunc = SortFunc<DataVec::iterator, Compare>;
 	
-	std::vector<int> inputVecSizes { 10, 127, 1005, 10123, 15000, 101137, 400000, 700000, 1000013 };
-	
 	DataSortFunc std_sort = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) { std::sort(begin, end, comp); };
-	DataSortFunc radix_sort = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) { lab::radix_sort(begin, end); };
+//	DataSortFunc radix_sort10 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) { lab::radix_sort(begin, end); };
+//	DataSortFunc radix_sort8 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+//		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 8>(begin, end);
+//	};
+	DataSortFunc radix_sort1024 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 1024>(begin, end);
+	};
 	
 	std::array<DataSortFunc, 8> sortAlgoArr {{
 		lab::selection_sort<DataVec::iterator, Compare>,
@@ -217,35 +258,64 @@ void runBenchmark(GeneratorFunc generator) {
 		lab::merge_sort<DataVec::iterator, Compare>,
 		lab::heap_sort<DataVec::iterator, Compare>,
 		std_sort,
-		radix_sort
+//		radix_sort10,
+//		radix_sort8,
+		radix_sort1024
 	}};
 	
-	for (int inputSize : inputVecSizes) {
-		DataVec inputVec = generator(inputSize);
+	runBenchmark(generator, std::begin(sortAlgoArr), std::end(sortAlgoArr));
+}
 
-		int i = 0;
-		std::cout << inputSize << "\t";
-		
-		for (auto& sortAlgoFunc : sortAlgoArr) {
-			// TODO Remove
-			if ((i == 0 || i == 1) && inputSize > 50000) {
-				++i;
-				std::cout << "" << "\t";
-				continue;
-			}
-			
-			auto duration =
-				runWithTimerAndMedian<DataType, Compare>(inputVec, 10, sortAlgoFunc);
-			
-//			std::cout << "Duration: " << duration.count() << "ms" << std::endl;
-			std::cout << duration.second.count() << "\t";
-			std::cout << std::flush;
-			
-			++i;
-		}
-		
-		std::cout << std::endl;
-	}
+void runRadixSortBenchmark() {
+	using DataType = int;
+	using DataVec = std::vector<DataType>;
+	using Compare = std::less<DataType>;
+	using DataSortFunc = SortFunc<DataVec::iterator, Compare>;
+
+	DataSortFunc radix_sort8 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 8>(begin, end);
+	};
+	DataSortFunc radix_sort10 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) { lab::radix_sort(begin, end); };
+	DataSortFunc radix_sort64 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 64>(begin, end);
+	};
+	DataSortFunc radix_sort100 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 100>(begin, end);
+	};
+	DataSortFunc radix_sort1000 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 1000>(begin, end);
+	};
+	DataSortFunc radix_sort1024 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 1024>(begin, end);
+	};
+	DataSortFunc radix_sort10000 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 10000>(begin, end);
+	};
+	DataSortFunc radix_sort16384 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 16384>(begin, end);
+	};
+	
+	std::array<DataSortFunc, 8> sortAlgoArr {{
+		radix_sort8,
+		radix_sort10,
+		radix_sort64,
+		radix_sort100,
+		radix_sort1000,
+		radix_sort1024,
+		radix_sort10000,
+		radix_sort16384
+	}};
+	
+	auto generator1 = [](int inputSize) { return generateRandomInput(inputSize, inputSize); };
+	auto generator2 = [](int inputSize) { return generateRandomInput(inputSize, (int)(3 + 0.00097f*(inputSize - 10))); };
+	
+	std::cout << "--- Random simple ---" << std::endl;
+	runBenchmark(generator1, std::begin(sortAlgoArr), std::end(sortAlgoArr));
+	
+    std::this_thread::sleep_for( std::chrono::milliseconds{ 30000 } );
+	
+	std::cout << "--- Random few unique ---" << std::endl;
+	runBenchmark(generator2, std::begin(sortAlgoArr), std::end(sortAlgoArr));
 }
 
 void runStabilityCheck() {
@@ -284,20 +354,47 @@ void runStabilityCheck() {
 }
 
 void runSortCorrectnessCheck() {
-	using IntVec = std::vector<int>;
-	std::less<int> comparison;
+	using DataType = int;
+	using DataVec = std::vector<DataType>;
+	using Compare = std::less<DataType>;
+	using DataSortFunc = SortFunc<DataVec::iterator, Compare>;
 	
 	while (true) {
-//		IntVec inputVec = generateRandomInput(10, 5);
-//		IntVec inputVec = generateRandomInput(15113, 100);
-//		IntVec inputVec = generateRandomInput(1000113, 100);
-		IntVec inputVec = generateRandomInput(1000013, 1000013);
-//		IntVec inputVec = generatePartiallySorted(100000, 100000, 0.9f, std::less<int>{});
-//		IntVec inputVec = generateSorted(1000013, 1000013, std::greater<int>{});
-//		IntVec inputVec = { 3, 4, 3, 5, 1, 2, 4, 2, 0, 3 };
+//		DataVec inputVec = generateRandomInput(10, 5);
+//		DataVec inputVec = generateRandomInput(15113, 100);
+//		DataVec inputVec = generateRandomInput(1000113, 100);
+		DataVec inputVec = generateRandomInput(1000013, 1000013);
+//		DataVec inputVec = generatePartiallySorted(100000, 100000, 0.9f, std::less<int>{});
+//		DataVec inputVec = generateSorted(1000013, 1000013, std::greater<int>{});
+//		DataVec inputVec = { 3, 4, 3, 5, 1, 2, 4, 2, 0, 3 };
 		
-		IntVec testInputVec(inputVec);
-		auto sortAlgo = [](IntVec::iterator begin, IntVec::iterator end, decltype(comparison) comp) {
+		DataSortFunc radix_sort8 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 8>(begin, end);
+		};
+		DataSortFunc radix_sort10 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+			lab::radix_sort(begin, end);
+		};
+		DataSortFunc radix_sort64 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 64>(begin, end);
+		};
+		DataSortFunc radix_sort100 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 100>(begin, end);
+		};
+		DataSortFunc radix_sort1000 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 1000>(begin, end);
+		};
+		DataSortFunc radix_sort1024 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 1024>(begin, end);
+		};
+		DataSortFunc radix_sort10000 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 10000>(begin, end);
+		};
+		DataSortFunc radix_sort16384 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
+			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 16384>(begin, end);
+		};
+		
+		DataVec testInputVec(inputVec);
+		auto sortAlgo = [&](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
 //			lab::selection_sort(begin, end, comp);
 //			lab::insertion_sort(begin, end, comp);
 //			lab::shell_sort(begin, end, comp);
@@ -305,9 +402,17 @@ void runSortCorrectnessCheck() {
 //			lab::merge_sort(begin, end, comp);
 //			lab::heap_sort(begin, end, comp);
 //			std::sort(begin, end, comp);
-			lab::radix_sort(begin, end);
+			
+//			radix_sort8(begin, end, comp);
+//			radix_sort10(begin, end, comp);
+//			radix_sort64(begin, end, comp);
+//			radix_sort100(begin, end, comp);
+//			radix_sort1000(begin, end, comp);
+			radix_sort1024(begin, end, comp);
+//			radix_sort16384(begin, end, comp);
 		};
 		
+		Compare comparison;
 		auto duration =
 			runWithTimer([&]() { sortAlgo(testInputVec.begin(), testInputVec.end(), comparison); });
 		std::cout << "Duration: " << duration.count() << "ms" << std::endl;
@@ -324,13 +429,15 @@ void runSortCorrectnessCheck() {
 
 int main(int argc, const char * argv[])
 {
+//	runRadixSortBenchmark();
+	
 //	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, inputSize); });
 //	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, (int)(3 + 0.00097f*(inputSize - 10))); });
-//	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
+	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
 //	runBenchmark([](int inputSize) { return generateSorted(inputSize, inputSize, std::greater<int>{}); });
-//	return 0;
+	return 0;
 	
-	runStabilityCheck();
+//	runStabilityCheck();
 //	runSortCorrectnessCheck();
-    return 0;
+//	return 0;
 }

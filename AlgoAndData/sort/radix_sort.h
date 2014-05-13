@@ -26,10 +26,44 @@ namespace lab {
 		}
 	};
 	
+	template<typename ValueType, typename BaseType, BaseType BASE>
+	typename std::enable_if<BASE == 8, BaseType>::type
+	radix_get_digit(ValueType value, unsigned long int exponent, int digitIdx) {
+		return (value >> (3*digitIdx)) & 0x7;
+	}
+	
+	template<typename ValueType, typename BaseType, BaseType BASE>
+	typename std::enable_if<BASE == 64, BaseType>::type
+	radix_get_digit(ValueType value, unsigned long int exponent, int digitIdx) {
+		return (value >> (6*digitIdx)) & 0x3F;
+	}
+	template<typename ValueType, typename BaseType, BaseType BASE>
+	typename std::enable_if<BASE == 1024, BaseType>::type
+	radix_get_digit(ValueType value, unsigned long int exponent, int digitIdx) {
+		return (value >> (10*digitIdx)) & 0x3FF;
+	}
+	template<typename ValueType, typename BaseType, BaseType BASE>
+	typename std::enable_if<BASE == 16384, BaseType>::type
+	radix_get_digit(ValueType value, unsigned long int exponent, int digitIdx) {
+		return (value >> (14*digitIdx)) & 0x3FFF;
+	}
+	template<typename ValueType, typename BaseType, BaseType BASE>
+	typename std::enable_if<BASE == 65536, BaseType>::type
+	radix_get_digit(ValueType value, unsigned long int exponent, int digitIdx) {
+		return (value >> (16*digitIdx)) & 0xFFF;
+	}
+	
+	template<typename ValueType, typename BaseType, BaseType BASE>
+	typename std::enable_if<BASE != 8 && BASE != 64 && BASE != 1024 && BASE != 16384 && BASE != 65536, BaseType>::type
+	radix_get_digit(ValueType value, unsigned long int exponent, int digitIdx) {
+		return (value / exponent) % BASE;
+	}
+	
 	// TODO Define Iterator category
 	template<
 		typename RandomIt,
-		typename KeyAccessor=DefaultKeyAccessor<typename std::iterator_traits<RandomIt>::value_type>
+		typename KeyAccessor=DefaultKeyAccessor<typename std::iterator_traits<RandomIt>::value_type>,
+		unsigned int BASE = 10
 	>
 	void radix_sort(RandomIt first, RandomIt last, KeyAccessor accessor) {
 		using ValueType = typename std::iterator_traits<RandomIt>::value_type;
@@ -56,11 +90,12 @@ namespace lab {
 		}
 		
 		// Preparations
-		using BaseType = int;
+		using BaseType = unsigned int;
 		using BucketArrType = unsigned long int;
 
-		static const BaseType BASE = 10;
-		int exponent = 1;
+//		static const BaseType vBASE = BASE;
+		unsigned long int exponent = 1;
+		int digitIdx = 0;
 		std::vector<ValueType> tempVec(length);
 		
 		// Sort body
@@ -69,8 +104,9 @@ namespace lab {
 			
 			// Making histogram
 			for (RandomIt iter = first; iter < last; ++iter) {
-				BaseType value = (accessor(*iter) / exponent) % BASE;
-				++bucketArr[value];
+//				BaseType digit = (accessor(*iter) / exponent) % BASE;
+				BaseType digit = radix_get_digit<KeyType, BaseType, BASE>(accessor(*iter), exponent, digitIdx);
+				++bucketArr[digit];
 			}
 			
 			// Making cumulative histogram
@@ -79,8 +115,9 @@ namespace lab {
 			
 			// Moving elements to tempVec positions using histogram
 			for (RandomIt iter = first + (length-1); iter >= first; --iter) {
-				BaseType value = (accessor(*iter) / exponent) % BASE;
-				BucketArrType place = --bucketArr[value];
+//				BaseType digit = (accessor(*iter) / exponent) % BASE;
+				BaseType digit = radix_get_digit<KeyType, BaseType, BASE>(accessor(*iter), exponent, digitIdx);
+				BucketArrType place = --bucketArr[digit];
 				
 				tempVec[place] = *iter;
 			}
@@ -91,16 +128,18 @@ namespace lab {
 			}
 			
 			exponent *= BASE;
+			++digitIdx;
 		}
 	}
 	
 	template<
 		typename RandomIt,
-		typename KeyAccessor=DefaultKeyAccessor<typename std::iterator_traits<RandomIt>::value_type>
+		typename KeyAccessor=DefaultKeyAccessor<typename std::iterator_traits<RandomIt>::value_type>,
+		unsigned int BASE = 10
 	>
 	void radix_sort(RandomIt first, RandomIt last) {
 		KeyAccessor accessor;
-		radix_sort(first, last, accessor);
+		radix_sort<RandomIt, KeyAccessor, BASE>(first, last, accessor);
 	}
 	
 } // namespace lab
