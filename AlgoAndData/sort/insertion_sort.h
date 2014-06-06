@@ -22,28 +22,6 @@
 
 namespace lab {
 
-//	template<typename RandomIt, typename Compare>
-//	void insertion_sort(RandomIt first, RandomIt last, Compare comp) {
-//		RandomIt iIter = first;
-//		++iIter;
-//		
-//		for (; iIter != last; ++iIter) {
-//			RandomIt jIter = iIter;
-//			
-//			while (jIter != first) {
-//				RandomIt prevIter = jIter;
-//				--prevIter;
-//				
-//				if (comp(*jIter, *prevIter)) {
-//					std::iter_swap(jIter, prevIter);
-//					--jIter;
-//				} else {
-//					break;
-//				}
-//			}
-//		}
-//	}
-	
 	// It can be used with BidirectionalIterator
 	template<typename RandomIt, typename Compare>
 	void insertion_sort(RandomIt first, RandomIt last, Compare comp) {
@@ -76,7 +54,6 @@ namespace lab {
 	void insertion_sort(RandomIt first, RandomIt last) {
 		insertion_sort(first, last, std::less<typename RandomIt::value_type>());
 	}
-	
 }
 
 #endif // AlgoAndData_sort_insertion_sort_h

@@ -224,7 +224,7 @@ void runBenchmark(GeneratorFunc generator, Iter begFuncContainer, Iter endFuncCo
 			auto duration =
 			runWithTimerAndMedian<DataType, Compare>(inputVec, 10, *funcIter);
 			
-			//			std::cout << "Duration: " << duration.count() << "ms" << std::endl;
+//			std::cout << "Duration: " << duration.count() << "ms" << std::endl;
 			std::cout << duration.second.count() << "\t";
 			std::cout << std::flush;
 			
@@ -250,7 +250,7 @@ void runBenchmark(GeneratorFunc generator) {
 		lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 1024>(begin, end);
 	};
 	
-	std::array<DataSortFunc, 8> sortAlgoArr {{
+	std::array<DataSortFunc, 9> sortAlgoArr {{
 		lab::selection_sort<DataVec::iterator, Compare>,
 		lab::insertion_sort<DataVec::iterator, Compare>,
 		lab::shell_sort<DataVec::iterator, Compare>,
@@ -260,7 +260,8 @@ void runBenchmark(GeneratorFunc generator) {
 		std_sort,
 //		radix_sort10,
 //		radix_sort8,
-		radix_sort1024
+		radix_sort1024,
+		lab::intro_sort<DataVec::iterator, Compare>
 	}};
 	
 	runBenchmark(generator, std::begin(sortAlgoArr), std::end(sortAlgoArr));
@@ -363,8 +364,8 @@ void runSortCorrectnessCheck() {
 //		DataVec inputVec = generateRandomInput(10, 5);
 //		DataVec inputVec = generateRandomInput(15113, 100);
 //		DataVec inputVec = generateRandomInput(1000113, 100);
-		DataVec inputVec = generateRandomInput(1000013, 1000013);
-//		DataVec inputVec = generatePartiallySorted(100000, 100000, 0.9f, std::less<int>{});
+//		DataVec inputVec = generateRandomInput(1000013, 1000013);
+		DataVec inputVec = generatePartiallySorted(1000013, 1000013, 0.9f, std::less<int>{});
 //		DataVec inputVec = generateSorted(1000013, 1000013, std::greater<int>{});
 //		DataVec inputVec = { 3, 4, 3, 5, 1, 2, 4, 2, 0, 3 };
 		
@@ -380,14 +381,8 @@ void runSortCorrectnessCheck() {
 		DataSortFunc radix_sort100 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
 			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 100>(begin, end);
 		};
-		DataSortFunc radix_sort1000 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
-			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 1000>(begin, end);
-		};
 		DataSortFunc radix_sort1024 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
 			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 1024>(begin, end);
-		};
-		DataSortFunc radix_sort10000 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
-			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 10000>(begin, end);
 		};
 		DataSortFunc radix_sort16384 = [](DataVec::iterator begin, DataVec::iterator end, Compare comp) {
 			lab::radix_sort<DataVec::iterator, lab::DefaultKeyAccessor<DataVec::value_type>, 16384>(begin, end);
@@ -402,13 +397,14 @@ void runSortCorrectnessCheck() {
 //			lab::merge_sort(begin, end, comp);
 //			lab::heap_sort(begin, end, comp);
 //			std::sort(begin, end, comp);
+			lab::intro_sort(begin, end, comp);
 			
 //			radix_sort8(begin, end, comp);
 //			radix_sort10(begin, end, comp);
 //			radix_sort64(begin, end, comp);
 //			radix_sort100(begin, end, comp);
 //			radix_sort1000(begin, end, comp);
-			radix_sort1024(begin, end, comp);
+//			radix_sort1024(begin, end, comp);
 //			radix_sort16384(begin, end, comp);
 		};
 		
@@ -433,11 +429,11 @@ int main(int argc, const char * argv[])
 	
 //	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, inputSize); });
 //	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, (int)(3 + 0.00097f*(inputSize - 10))); });
-	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
+//	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
 //	runBenchmark([](int inputSize) { return generateSorted(inputSize, inputSize, std::greater<int>{}); });
-	return 0;
-	
+//	return 0;
+
+	runSortCorrectnessCheck();
 //	runStabilityCheck();
-//	runSortCorrectnessCheck();
 //	return 0;
 }

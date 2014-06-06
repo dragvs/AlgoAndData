@@ -16,5 +16,6 @@
 #include "quick_sort.h"
 #include "heap_sort.h"
 #include "radix_sort.h"
+#include "intro_sort.h"
 
 #endif // AlgoAndData_sort_sort_h
