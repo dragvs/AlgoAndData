@@ -36,6 +36,7 @@
 		578F42AB1941F95D002656BC /* timsort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = timsort.h; path = sort/timsort.h; sourceTree = "<group>"; };
 		579F551A18782953001F3976 /* merge_sort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = merge_sort.h; path = sort/merge_sort.h; sourceTree = "<group>"; };
 		57AC2CBA18FD730800213C37 /* radix_sort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = radix_sort.h; path = sort/radix_sort.h; sourceTree = "<group>"; };
+		57E7714D1954590800B86B0B /* hash_map.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hash_map.h; path = data/hash_map.h; sourceTree = "<group>"; };
 		57F9C5BF1877053C006626E7 /* AlgoAndData */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AlgoAndData; sourceTree = BUILT_PRODUCTS_DIR; };
 		57F9C5C21877053C006626E7 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		57F9C5C41877053C006626E7 /* AlgoAndData.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = AlgoAndData.1; sourceTree = "<group>"; };
@@ -72,6 +73,7 @@
 		5726B72418F44F550088F957 /* data */ = {
 			isa = PBXGroup;
 			children = (
+				57E7714D1954590800B86B0B /* hash_map.h */,
 				5726B72318F44F500088F957 /* heap.h */,
 			);
 			name = data;

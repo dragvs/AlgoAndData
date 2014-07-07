@@ -8,6 +8,7 @@
 
 
 #include "sort/sort.h"
+#include "data/hash_map.h"
 
 #include <iostream>
 #include <vector>
@@ -21,6 +22,8 @@
 #include <chrono>
 #include <thread>
 #include <future>
+#include <string>
+#include <utility>
 
 
 struct Data {
@@ -425,14 +428,96 @@ void runSortCorrectnessCheck() {
 	}
 }
 
+void testHashMap() {
+    using DataMap = lab::hash_map<std::string, Data>;
+    DataMap testMap;
+    Data d1 { 1, 1 };
+    Data d2 { 2, 2 };
+    Data d3 { 3, 3 };
+    testMap["1"] = d1;
+    testMap["2"] = d2;
+    testMap["3"] = d3;
+    
+    assert(testMap["1"] == d1);
+    assert(testMap["2"] == d2);
+    assert(testMap["3"] == d3);
+    
+    for (int i = 4; i < 104; ++i) {
+        testMap[std::to_string(i)] = Data { i, i };
+    }
+    
+    // Iteration and size test
+    auto it = testMap.begin();
+    auto endIt = testMap.end();
+    int count = 0;
+    
+    while (it != endIt) {
+        auto& pair = *it;
+        
+        assert(pair.second.value == pair.second.index);
+        assert(pair.first == std::to_string(pair.second.index));
+        
+        ++count;
+        ++it;
+    }
+    
+    assert(count == testMap.size());
+    
+    // Insert test
+    Data d150 { 150, 150 };
+    auto testPair1 = std::make_pair("1", d1);
+    auto testPair2 = std::make_pair("150", d150);
+    std::pair<DataMap::iterator, bool> res1 = testMap.insert(testPair1);
+    std::pair<DataMap::iterator, bool> res2 = testMap.insert(testPair2);
+    
+    assert(res1.second == false);
+    assert(res1.first->first == "1");
+    assert(res1.first->second == d1);
+    assert(res2.second == true);
+    assert(res2.first->first == "150");
+    assert(res2.first->second == d150);
+    
+    // Erasure
+    
+    for (int i = 0; i < 104; i+=2) {
+        testMap.erase(std::to_string(i));
+    }
+    for (int i = 50; i >= 0; --i) {
+        testMap[std::to_string(i)] = Data { i, i };
+    }
+    auto cIt = testMap.cbegin();
+    auto cEndIt = testMap.cend();
+    count = 0;
+    
+    while (cIt != cEndIt) {
+        auto& pair = *cIt;
+        
+        assert(pair.second.value == pair.second.index);
+        assert(pair.first == std::to_string(pair.second.index));
+        
+        ++count;
+        ++cIt;
+    }
+    
+    assert(count == testMap.size());
+    
+    assert(testMap.find("33") != testMap.end());
+    assert(testMap.count("44") == 1);
+    
+    testMap.erase(++testMap.cbegin());
+}
+
 int main(int argc, const char * argv[])
 {
+    testHashMap();
+    return 0;
+    
 //	runRadixSortBenchmark();
 	
 //	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, inputSize); });
 //	runBenchmark([](int inputSize) { return generateRandomInput(inputSize, (int)(3 + 0.00097f*(inputSize - 10))); });
 //	runBenchmark([](int inputSize) { return generatePartiallySorted(inputSize, inputSize, 0.9f, std::less<int>{}); });
-	runBenchmark([](int inputSize) { return generateSorted(inputSize, inputSize, std::greater<int>{}); });
+//	runBenchmark([](int inputSize) { return generateSorted(inputSize, inputSize, std::greater<int>{}); });
 //	return 0;
 
 //	runSortCorrectnessCheck();
