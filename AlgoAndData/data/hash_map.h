@@ -189,8 +189,9 @@ namespace lab {
     class hash_map {
     private:
         using internal_value_type = std::pair<Key, T>;
-        using bucket_type = Bucket<internal_value_type>;
-        using BucketArray = std::vector<bucket_type>;
+        using Bucket_type = Bucket<internal_value_type>;
+        using Bucket_allocator_type = typename Allocator::template rebind<Bucket_type>::other;
+        using BucketArray = std::vector<Bucket_type, Bucket_allocator_type>;
         
     public:
         using key_type = Key;
