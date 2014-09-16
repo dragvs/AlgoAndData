@@ -293,7 +293,7 @@ namespace lab {
             iterator iter = find(key);
             
             if (iter == end()) {
-                // Element with provided key not found to erase
+                // An element with provided key isn't found to erase
                 return 0;
             }
             

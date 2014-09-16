@@ -9,6 +9,7 @@
 
 #include "sort/sort.h"
 #include "data/hash_map.h"
+#include "data/twothree_tree.h"
 
 #include <iostream>
 #include <vector>
@@ -29,6 +30,10 @@
 struct Data {
 	int value;
 	int index;
+    
+    Data() {}
+    explicit Data(int value) : value(value), index(0) {}
+    Data(int value, int index) : value(value), index(index) {}
 };
 
 struct DataKeyAccessor {
@@ -52,6 +57,10 @@ std::ostream& operator<<( std::ostream& os, const Data& data) {
 bool operator==(const Data& left, const Data& right)
 {
 	return left.value == right.value && left.index == right.index;
+}
+bool operator<(const Data& left, const Data& right)
+{
+    return left.value < right.value;
 }
 
 //
@@ -100,18 +109,28 @@ bool isStableSorted(ForwardIt sortedFirst, ForwardIt sortedLast, ForwardIt origi
 // Generators
 //
 
+std::function<int()> createIntUniformGenerator(int maxValue) {
+    std::random_device rd; // for seed
+	std::minstd_rand engine(rd());
+	std::uniform_int_distribution<int> uniform_dist(0, maxValue);
+    
+    return [uniform_dist, engine]() mutable { return uniform_dist(engine); };
+}
+
+int generateRandomInt(int maxValue) {
+    auto generator = createIntUniformGenerator(maxValue);
+    return generator();
+}
+
 std::vector<int> generateRandomInput(int inputSize, int maxValue) {
 	std::vector<int> inputVec;
 	inputVec.reserve(inputSize);
 	
-	std::random_device rd; // for seed
-	std::minstd_rand engine(rd());
-	std::uniform_int_distribution<int> uniform_dist(0, maxValue);
-	
+    auto generator = createIntUniformGenerator(maxValue);
+    
 	for (int i = 0; i < inputSize; ++i) {
-		inputVec.push_back(uniform_dist(engine));
+		inputVec.push_back(generator());
 	}
-	
 	return inputVec;
 }
 
@@ -507,9 +526,378 @@ void testHashMap() {
     testMap.erase(++testMap.cbegin());
 }
 
-int main(int argc, const char * argv[])
+//
+
+template<typename T, typename K, typename U>
+void assertSortedUniques(const lab::twothree_tree<T, K, U>& tree, int count) {
+    std::vector<T> elemsVec { tree.cbegin(), tree.cend() };
+    
+    assert(elemsVec.size() == count);
+    assert(std::is_sorted(elemsVec.cbegin(), elemsVec.cend()));
+    assert(std::adjacent_find(elemsVec.cbegin(), elemsVec.cend()) == elemsVec.cend());
+}
+
+template<typename T>
+void assertNodeValueEqual(const std::pair<T, bool> nodeValue, T value) {
+    assert(nodeValue == std::make_pair(value, true));
+}
+
+template<typename T>
+void assertNodeValueEmpty(const std::pair<T, bool> nodeValue) {
+    assert(nodeValue.second == false);
+}
+
+void testTwoThreeTree() {
+    using DataTree = lab::twothree_tree<int>;
+    
+    // Insertion tests
+    // # oneElement
+    {
+        DataTree testTree;
+        testTree.insert(10);
+        assert(testTree.value(0) == std::make_pair(10, true));
+        assert(testTree.value(1).second == false);
+        assert(testTree.child(0).exists() == false);
+        assert(testTree.child(1).exists() == false);
+    }
+    
+    // # twoElements
+    {
+        // 10 15
+        DataTree testTree;
+        testTree.insert(10);
+        testTree.insert(15);
+        assert(testTree.value(0) == std::make_pair(10, true));
+        assert(testTree.value(1) == std::make_pair(15, true));
+        assert(testTree.child(0).exists() == false);
+        assert(testTree.child(1).exists() == false);
+        assertSortedUniques(testTree, 2);
+    }
+    
+    // # twoLevelsSimple
+    {
+        //       10
+        // 4  8     15  20
+        DataTree testTree;
+        testTree.insert({ 10, 15, 4, 20, 8 });
+        assert(testTree.value(0) == std::make_pair(10, true));
+        assert(testTree.value(1).second == false);
+        assert(testTree.child(0).value(0) == std::make_pair(4, true));
+        assert(testTree.child(0).value(1) == std::make_pair(8, true));
+        assert(testTree.child(1).value(0) == std::make_pair(15, true));
+        assert(testTree.child(1).value(1) == std::make_pair(20, true));
+        assert(testTree.child(2).exists() == false);
+        assertSortedUniques(testTree, 5);
+    }
+
+    // # twoLevelsFilled
+    {
+        //       10 20
+        //    /    |    \
+        // 4  7  15 17   23 25
+        DataTree testTree;
+        testTree.insert({ 10, 15, 4, 20, 7, 23, 17, 25 });
+        assert(testTree.value(0) == std::make_pair(10, true));
+        assert(testTree.value(1) == std::make_pair(20, true));
+        assert(testTree.child(0).value(0) == std::make_pair(4, true));
+        assert(testTree.child(0).value(1) == std::make_pair(7, true));
+        assert(testTree.child(1).value(0) == std::make_pair(15, true));
+        assert(testTree.child(1).value(1) == std::make_pair(17, true));
+        assert(testTree.child(2).value(0) == std::make_pair(23, true));
+        assert(testTree.child(2).value(1) == std::make_pair(25, true));
+        assertSortedUniques(testTree, 8);
+    }
+    
+    // # threeLevelsSingle
+    {
+        //       4
+        //    2      6
+        // 1    3  5    7
+        DataTree testTree;
+        testTree.insert({ 4, 3, 6, 7, 5, 2, 1 });
+        assert(testTree.value(0) == std::make_pair(4, true));
+        assert(testTree.child(0).value(0) == std::make_pair(2, true));
+        assert(testTree.child(0).child(0).value(0) == std::make_pair(1, true));
+        assert(testTree.child(0).child(1).value(0) == std::make_pair(3, true));
+        assert(testTree.child(1).value(0) == std::make_pair(6, true));
+        assert(testTree.child(1).child(0).value(0) == std::make_pair(5, true));
+        assert(testTree.child(1).child(1).value(0) == std::make_pair(7, true));
+        assertSortedUniques(testTree, 7);
+    }
+    
+    // # twoLevelsFilledInsertLeft
+    {
+        //            10
+        //        /        \
+        //      4            20
+        //   /    \       /      \
+        //  2      7    15 17    23 25
+        DataTree testTree;
+        testTree.insert({ 10, 15, 4, 20, 7, 23, 17, 25 });
+        testTree.insert(2);
+        assert(testTree.value(0) == std::make_pair(10, true));
+        assert(testTree.value(1).second == false);
+        assert(testTree.child(0).value(0) == std::make_pair(4, true));
+        assert(testTree.child(0).value(1).second == false);
+        assert(testTree.child(0).child(0).value(0) == std::make_pair(2, true));
+        assert(testTree.child(0).child(1).value(0) == std::make_pair(7, true));
+        
+        assert(testTree.child(1).value(0) == std::make_pair(20, true));
+        assert(testTree.child(1).value(1).second == false);
+        assert(testTree.child(1).child(0).value(0) == std::make_pair(15, true));
+        assert(testTree.child(1).child(0).value(1) == std::make_pair(17, true));
+        assert(testTree.child(1).child(1).value(0) == std::make_pair(23, true));
+        assert(testTree.child(1).child(1).value(1) == std::make_pair(25, true));
+        assertSortedUniques(testTree, 9);
+    }
+    
+    // # twoLevelsFilledInsertMiddle
+    {
+        //           16
+        //        /      \
+        //      10          20
+        //    /    \      /    \
+        // 4  7     15   17   23 25
+        DataTree testTree;
+        testTree.insert({ 10, 15, 4, 20, 7, 23, 17, 25 });
+        testTree.insert(16);
+        assertNodeValueEqual(testTree.value(0), 16);
+        assertNodeValueEmpty(testTree.value(1));
+        assertNodeValueEqual(testTree.child(0).value(0), 10);
+        assertNodeValueEqual(testTree.child(0).child(0).value(0), 4);
+        assertNodeValueEqual(testTree.child(0).child(0).value(1), 7);
+        assertNodeValueEqual(testTree.child(0).child(1).value(0), 15);
+        
+        assertNodeValueEqual(testTree.child(1).value(0), 20);
+        assertNodeValueEqual(testTree.child(1).child(0).value(0), 17);
+        assertNodeValueEqual(testTree.child(1).child(1).value(0), 23);
+        assertNodeValueEqual(testTree.child(1).child(1).value(1), 25);
+        assertSortedUniques(testTree, 9);
+    }
+    
+    // # twoLevelsFilledInsertRight
+    {
+        //             20
+        //          /      \
+        //       10          25
+        //    /     \      /    \
+        // 4  7   15 17   23     27
+        DataTree testTree;
+        testTree.insert({ 10, 15, 4, 20, 7, 23, 17, 25 });
+        testTree.insert(27);
+        assertNodeValueEqual(testTree.value(0), 20);
+        assertNodeValueEmpty(testTree.value(1));
+        assertNodeValueEqual(testTree.child(0).value(0), 10);
+        assertNodeValueEqual(testTree.child(0).child(0).value(0), 4);
+        assertNodeValueEqual(testTree.child(0).child(0).value(1), 7);
+        assertNodeValueEqual(testTree.child(0).child(1).value(0), 15);
+        assertNodeValueEqual(testTree.child(0).child(1).value(1), 17);
+        
+        assertNodeValueEqual(testTree.child(1).value(0), 25);
+        assertNodeValueEqual(testTree.child(1).child(0).value(0), 23);
+        assertNodeValueEqual(testTree.child(1).child(1).value(0), 27);
+        assertSortedUniques(testTree, 9);
+    }
+    
+    // # eraseTest1 - removing last value from tree
+    {
+        DataTree testTree;
+        testTree.insert(16);
+        testTree.erase(16);
+        assert(testTree.empty());
+    }
+    
+    // # eraseTest2 - removing last but one value from tree
+    {
+        DataTree testTree;
+        testTree.insert({ 16, 17 });
+        testTree.erase(16);
+        assertNodeValueEqual(testTree.value(0), 17);
+        assertNodeValueEmpty(testTree.value(1));
+        assertSortedUniques(testTree, 1);
+    }
+    
+    // # eraseTest3 - case 1, simple
+    {
+        //    5
+        //  3   7
+        DataTree testTree;
+        testTree.insert({ 3, 5, 7 });
+        testTree.erase(7);
+        assertNodeValueEqual(testTree.value(0), 3);
+        assertNodeValueEqual(testTree.value(1), 5);
+        assertSortedUniques(testTree, 2);
+    }
+    
+    // # eraseTest4 - case 1b+1a
+    {
+        //       4
+        //    2      6
+        // 1    3  5    7
+        
+        //        4 6
+        //      /  |  \
+        //   1 2   5    7
+        DataTree testTree;
+        testTree.insert({ 4, 3, 6, 7, 5, 2, 1 });
+        testTree.erase(3);
+        assertNodeValueEqual(testTree.value(0), 4);
+        assertNodeValueEqual(testTree.value(1), 6);
+        assertNodeValueEqual(testTree.child(0).value(0), 1);
+        assertNodeValueEqual(testTree.child(0).value(1), 2);
+        assertNodeValueEqual(testTree.child(1).value(0), 5);
+        assertNodeValueEqual(testTree.child(2).value(0), 7);
+        assertSortedUniques(testTree, 6);
+    }
+    
+    // # eraseTest5 - case 2, simple
+    {
+        //     5
+        //  3    7 9
+        DataTree testTree;
+        testTree.insert({ 3, 5, 7, 9 });
+        testTree.erase(3);
+        assertNodeValueEqual(testTree.value(0), 7);
+        assertNodeValueEmpty(testTree.value(1));
+        assertNodeValueEqual(testTree.child(0).value(0), 5);
+        assertNodeValueEqual(testTree.child(1).value(0), 9);
+        assertSortedUniques(testTree, 3);
+    }
+    
+    // # eraseTest6 - case 2a
+    {
+        //         4
+        //    2        6,9
+        // 1    3   5   7  11
+        
+        //         6
+        //     4         9
+        // 1,2   5     7   11
+        DataTree testTree;
+        testTree.insert({ 4, 3, 6, 7, 5, 2, 1, 9, 11 });
+        testTree.erase(3);
+        assertNodeValueEqual(testTree.value(0), 6);
+        assertNodeValueEqual(testTree.child(0).value(0), 4);
+        assertNodeValueEqual(testTree.child(0).child(0).value(0), 1);
+        assertNodeValueEqual(testTree.child(0).child(0).value(1), 2);
+        assertNodeValueEqual(testTree.child(0).child(1).value(0), 5);
+        assertNodeValueEqual(testTree.child(1).value(0), 9);
+        assertNodeValueEqual(testTree.child(1).child(0).value(0), 7);
+        assertNodeValueEqual(testTree.child(1).child(1).value(0), 11);
+        assertSortedUniques(testTree, 8);
+    }
+
+    // # eraseTest7 - case 3, erase from left
+    {
+        //              16,24
+        //    8           21          29
+        // 1     12    20    22     28   30
+        DataTree testTree;
+        testTree.insert({ 16, 12, 24, 28, 20, 8, 1 });
+        testTree.insert({ 21, 29, 22, 30 });
+        //               24
+        //       16,21          29
+        //   1,8   20  22     28   30
+        testTree.erase(12);
+        assertNodeValueEqual(testTree.value(0), 24);
+        assertNodeValueEmpty(testTree.value(1));
+        assertNodeValueEqual(testTree.child(0).value(0), 16);
+        assertNodeValueEqual(testTree.child(0).value(1), 21);
+        assertNodeValueEqual(testTree.child(0).child(0).value(0), 1);
+        assertNodeValueEqual(testTree.child(0).child(0).value(1), 8);
+        assertSortedUniques(testTree, 10);
+    }
+    
+    // # eraseTest8 - case 3, erase from middle
+    {
+        //              16,24
+        //    8           21          29
+        // 1     12    20    22     28   30
+        DataTree testTree;
+        testTree.insert({ 16, 12, 24, 28, 20, 8, 1 });
+        testTree.insert({ 21, 29, 22, 30 });
+        //                24
+        //     8,16              29
+        // 1    12  20,21     28    30
+        testTree.erase(22);
+        assertNodeValueEqual(testTree.value(0), 24);
+        assertNodeValueEmpty(testTree.value(1));
+        assertNodeValueEqual(testTree.child(0).value(0), 8);
+        assertNodeValueEqual(testTree.child(0).value(1), 16);
+        assertNodeValueEqual(testTree.child(0).child(2).value(0), 20);
+        assertNodeValueEqual(testTree.child(0).child(2).value(1), 21);
+        assertSortedUniques(testTree, 10);
+    }
+    
+    // # eraseTest9 - case 3, erase from right
+    {
+        //              16,24
+        //    8           21          29
+        // 1     12    20    22     28   30
+        DataTree testTree;
+        testTree.insert({ 16, 12, 24, 28, 20, 8, 1 });
+        testTree.insert({ 21, 29, 22, 30 });
+        //           16
+        //    8               21,24
+        // 1     12       20   22   29,30
+        testTree.erase(28);
+        assertNodeValueEqual(testTree.value(0), 16);
+        assertNodeValueEmpty(testTree.value(1));
+        assertNodeValueEqual(testTree.child(1).value(0), 21);
+        assertNodeValueEqual(testTree.child(1).value(1), 24);
+        assertNodeValueEqual(testTree.child(1).child(0).value(0), 20);
+        assertNodeValueEqual(testTree.child(1).child(1).value(0), 22);
+        assertNodeValueEqual(testTree.child(1).child(2).value(0), 29);
+        assertNodeValueEqual(testTree.child(1).child(2).value(1), 30);
+        assertSortedUniques(testTree, 10);
+    }
+    
+    
+    // ______X______
+    
+    // # eraseTest3 - ??
+    {
+        //              16
+        //         /         \
+        //      10            20 24
+        //    /    \       /    |     \
+        // 4  7     15   17   22 23   25 27
+        
+        //              17
+        //         /         \
+        //      10            20 24
+        //    /    \       /    |     \
+        // 4  7     10    _   22 23   25 27
+        DataTree testTree;
+        testTree.insert({ 10, 15, 4, 20, 7, 23, 17, 25, 16, 24, 22, 27 });
+        testTree.erase(16);
+        assertSortedUniques(testTree, 11);
+    }
+    
+    // #3 Random insertions and erasures
+    while (true) {
+        DataTree testTree;
+        std::vector<int> randomIntVec = generateRandomInput(30, 30); // 1000000
+        int uniquesInserted = 0;
+        
+        for (auto& value : randomIntVec) {
+            auto result = testTree.insert(value);
+            
+            if (result.second)
+                ++uniquesInserted;
+        }
+        assertSortedUniques(testTree, uniquesInserted);
+        
+        int valueToErase = randomIntVec.at(generateRandomInt(static_cast<int>(randomIntVec.size()-1)));
+        testTree.erase(valueToErase);
+        assertSortedUniques(testTree, uniquesInserted-1);
+    }
+}
+
+int main2(int argc, const char * argv[])
 {
-    testHashMap();
+//    testHashMap();
+    testTwoThreeTree();
     return 0;
     
 //	runRadixSortBenchmark();
